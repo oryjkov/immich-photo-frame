@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Random Photo Display</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden; /* Hide scrollbars */
+      }
+
+      .image-wrapper {
+        position: relative; /* Container for image and background */
+        width: 100vw; /* Match viewport width */
+        height: 100vh; /* Match viewport height */
+        background-color: black; /* Black background */
+        display: flex; /* Use flexbox for alignment */
+        justify-content: center; /* Center image horizontally */
+        align-items: center; /* Center image vertically */
+      }
+
+      img {
+        width: auto; /* Allow image to adjust width */
+        height: auto; /* Allow image to adjust height */
+        max-width: 100%; /* Limit max width to viewport */
+        max-height: 100%; /* Limit max height to viewport */
+      }
+    </style>
+  </head>
+  <body>
+    <div class="image-wrapper">
+      <img id="random-photo" src="" alt="Loading..." />
+    </div>
+    <script>
+      const imgElement = document.getElementById("random-photo");
+      const randomEndpoint = "/api/asset/random";
+      const imageEndpoint = "/api/asset/file/";
+      const metadataEndpoint = "/api/asset/:id"; // Use template literal for dynamic ID
+
+      async function getRandomImage() {
+        let imageUrl;
+        while (true) {
+          try {
+            const response = await fetch(randomEndpoint);
+            const data = await response.json();
+            const assetId = data[0].id;
+            const metadataUrl = metadataEndpoint.replace(":id", assetId); // Replace ID
+
+            const metadataResponse = await fetch(metadataUrl);
+            const metadata = await metadataResponse.json();
+
+            if (metadata.type === "IMAGE") {
+              imageUrl = imageEndpoint + assetId + "?isWeb=true";
+              break; // Exit loop if it's an image
+            }
+          } catch (error) {
+            console.error("Error fetching random asset:", error);
+          }
+        }
+
+        if (imageUrl) {
+          // Pre-fetch the next image (assuming another endpoint exists)
+          fetch(imageUrl).catch((error) =>
+            console.error("Error pre-fetching next image:", error),
+          );
+
+          // Update image if already loaded
+          if (imgElement.complete) {
+            imgElement.src = imageUrl;
+          }
+        } else {
+          console.warn("No image found in recent attempts.");
+        }
+      }
+
+      getRandomImage(); // Get initial image
+      setInterval(getRandomImage, 30000); // Repeat every 30 seconds
+    </script>
+  </body>
+</html>
