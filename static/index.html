@@ -20,6 +20,21 @@
         justify-content: center; /* Center image horizontally */
         align-items: center; /* Center image vertically */
       }
+      .image-overlay {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        background-color: rgba(
+          0,
+          0,
+          0,
+          0.5
+        ); /* Semi-transparent black background */
+        color: white;
+        padding: 10px;
+        font-size: 18px; /* Increased font size */
+        font-family: "Open Sans", sans-serif; /* Nicer font family */
+      }
 
       img {
         width: auto; /* Allow image to adjust width */
@@ -52,7 +67,12 @@
             const metadata = await metadataResponse.json();
 
             if (metadata.type === "IMAGE") {
-              imageUrl = imageEndpoint + assetId + "?isWeb=true";
+              imageUrl = imageEndpoint + assetId;
+              const dateString = getFormattedDate(
+                metadata.exifInfo.dateTimeOriginal,
+              );
+              displayImageWithOverlay(imageUrl, dateString);
+              //imageUrl = imageEndpoint + assetId + "?isWeb=true";
               break; // Exit loop if it's an image
             }
           } catch (error) {
@@ -73,6 +93,30 @@
         } else {
           console.warn("No image found in recent attempts.");
         }
+      }
+
+      function getFormattedDate(dateTimeString) {
+        const date = new Date(dateTimeString);
+        const month = date.toLocaleString("default", { month: "long" });
+        const day = date.getDate();
+        const year = date.getFullYear();
+        return `${month} ${day}, ${year}`;
+      }
+
+      function displayImageWithOverlay(imageUrl, dateString) {
+        imgElement.src = imageUrl;
+        const imageWrapper = imgElement.parentElement;
+        // Remove any existing overlay element
+        const existingOverlay = imageWrapper.querySelector(".image-overlay");
+        if (existingOverlay) {
+          existingOverlay.remove();
+        }
+
+        // Create and style the overlay element
+        const overlay = document.createElement("div");
+        overlay.classList.add("image-overlay");
+        overlay.textContent = dateString;
+        imageWrapper.appendChild(overlay);
       }
 
       getRandomImage(); // Get initial image
