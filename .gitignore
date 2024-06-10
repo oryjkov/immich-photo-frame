@@ -1,2 +1,5 @@
 .env
 run/
+node_modules
+/build
+/dist
