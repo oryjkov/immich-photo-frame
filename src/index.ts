@@ -1,13 +1,19 @@
-import { getRandom, AssetResponseDto } from '@immich/sdk';
+import { getRandom, AssetResponseDto, viewAsset, AssetMediaSize } from '@immich/sdk';
 
 async function getRandomImage() {
   const imgElement = document.getElementById("random-photo") as HTMLImageElement;
+
+  let assets = await getRandom({ count: 3 });
+  if (assets.length == 0) {
+    return;
+  }
 
   let asset: AssetResponseDto | null = null;
 
   while (true) {
     try {
-      asset = (await getRandom({ count: 1 }))[0];
+      let assets = await getRandom({ count: 1 });
+      asset = assets[0];
       if (asset.type === "IMAGE") {
         break;
       }
@@ -17,16 +23,12 @@ async function getRandomImage() {
   }
 
   if (asset) {
-    const imageEndpoint = "/api/asset/file/";
-    const imageUrl = imageEndpoint + asset.id;
-    fetch(imageUrl).catch((error) =>
-      console.error("Error pre-fetching next image:", error),
-    );
+    let imageBlob = await viewAsset({ id: asset.id, size: AssetMediaSize.Preview });
+    console.log(imageBlob);
 
     // Update image if already loaded
     if (imgElement.complete) {
-      imgElement.src = imageUrl;
-      displayImageWithOverlay(imgElement, imageUrl, asset);
+      displayImageWithOverlay(imgElement, imageBlob, asset);
     }
   } else {
     console.warn("No image found in recent attempts.");
@@ -62,7 +64,7 @@ function getFormattedLocation(asset: AssetResponseDto) {
   }
 }
 
-function displayImageWithOverlay(imgElement: HTMLImageElement, imageUrl: string, asset: AssetResponseDto) {
+function displayImageWithOverlay(imgElement: HTMLImageElement, imageBlob: Blob, asset: AssetResponseDto) {
   const imageWrapper = imgElement.parentElement;
   if (imageWrapper === null) {
     return;
@@ -74,7 +76,7 @@ function displayImageWithOverlay(imgElement: HTMLImageElement, imageUrl: string,
   existingOverlays.forEach((overlay) => overlay.remove());
 
   // Set image source
-  imgElement.src = imageUrl;
+  imgElement.src = URL.createObjectURL(imageBlob);
 
   // Get formatted location (if available)
   const locationString = getFormattedLocation(asset);
