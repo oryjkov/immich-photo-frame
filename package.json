@@ -18,6 +18,6 @@
     "webpack-dev-server": "^5.0.4"
   },
   "dependencies": {
-    "@immich/sdk": "^1.105.1"
+    "@immich/sdk": "^1.106.1"
   }
 }
