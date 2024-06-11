@@ -1,4 +1,4 @@
-import { getRandom, AssetResponseDto, viewAsset, AssetMediaSize } from '@immich/sdk';
+import { getRandom, AssetResponseDto, viewAsset, AssetMediaSize, getAllAlbums, AlbumResponseDto } from '@immich/sdk';
 
 async function getRandomImage() {
   const imgElement = document.getElementById("random-photo") as HTMLImageElement;
@@ -14,7 +14,7 @@ async function getRandomImage() {
     try {
       let assets = await getRandom({ count: 1 });
       asset = assets[0];
-      if (asset.type === "IMAGE") {
+      if (asset.type === "IMAGE" && !asset.isArchived) {
         break;
       }
     } catch (error) {
@@ -23,12 +23,12 @@ async function getRandomImage() {
   }
 
   if (asset) {
+    let albums = await getAllAlbums({ assetId: asset.id });
     let imageBlob = await viewAsset({ id: asset.id, size: AssetMediaSize.Preview });
-    console.log(imageBlob);
 
     // Update image if already loaded
     if (imgElement.complete) {
-      displayImageWithOverlay(imgElement, imageBlob, asset);
+      displayImageWithOverlay(imgElement, imageBlob, asset, albums);
     }
   } else {
     console.warn("No image found in recent attempts.");
@@ -64,33 +64,41 @@ function getFormattedLocation(asset: AssetResponseDto) {
   }
 }
 
-function displayImageWithOverlay(imgElement: HTMLImageElement, imageBlob: Blob, asset: AssetResponseDto) {
+function displayImageWithOverlay(imgElement: HTMLImageElement, imageBlob: Blob, asset: AssetResponseDto, albums: AlbumResponseDto[]) {
   const imageWrapper = imgElement.parentElement;
   if (imageWrapper === null) {
     return;
   }
+
+  imgElement.src = URL.createObjectURL(imageBlob);
 
   // Clear any existing overlay elements (optional)
   const existingOverlays =
     imageWrapper.querySelectorAll(".image-overlay");
   existingOverlays.forEach((overlay) => overlay.remove());
 
-  // Set image source
-  imgElement.src = URL.createObjectURL(imageBlob);
-
   // Get formatted location (if available)
   const locationString = getFormattedLocation(asset);
 
+  const albumOverlay = imageWrapper.querySelector(".album-overlay") as HTMLElement;
+  if (albumOverlay !== null) {
+    if (albums.length > 0) {
+      albumOverlay.textContent = albums.map(a => a.albumName).join(", ");
+      albumOverlay.style.display = "block";
+    } else {
+      albumOverlay.style.display = "none";
+    }
+  }
+
   // Update location overlay (if location available)
   const locationOverlay = imageWrapper.querySelector(".location-overlay") as HTMLElement;
-  if (locationOverlay === null) {
-    return;
-  }
-  if (locationString) {
-    locationOverlay.textContent = locationString;
-    locationOverlay.style.display = "block"; // Show location overlay
-  } else {
-    locationOverlay.style.display = "none"; // Hide location overlay if no location
+  if (locationOverlay !== null) {
+    if (locationString) {
+      locationOverlay.textContent = locationString;
+      locationOverlay.style.display = "block"; // Show location overlay
+    } else {
+      locationOverlay.style.display = "none"; // Hide location overlay if no location
+    }
   }
 
   // Update date overlay
