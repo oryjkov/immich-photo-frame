@@ -1,12 +1,7 @@
-import { getRandom, AssetResponseDto, viewAsset, AssetMediaSize, getAllAlbums, AlbumResponseDto } from '@immich/sdk';
+import { setApiKey, getRandom, AssetResponseDto, viewAsset, AssetMediaSize, getAllAlbums, AlbumResponseDto } from '@immich/sdk';
 
 async function getRandomImage() {
   const imgElement = document.getElementById("random-photo") as HTMLImageElement;
-
-  let assets = await getRandom({ count: 3 });
-  if (assets.length == 0) {
-    return;
-  }
 
   let asset: AssetResponseDto | null = null;
 
@@ -110,6 +105,30 @@ function displayImageWithOverlay(imgElement: HTMLImageElement, imageBlob: Blob, 
     dateOverlay.textContent = getFormattedDate(asset.exifInfo.dateTimeOriginal);
   }
   dateOverlay.style.display = "block"; // Show date overlay
+}
+
+// Set the api-key as a cookie and remove it from the URL.
+const url = new URL(window.location.href);
+if (url.searchParams.has('api-key')) {
+  const api_key = url.searchParams.get('api-key');
+  document.cookie = `api-key=${api_key}; path=/`;
+  url.searchParams.delete('api-key');
+  window.location.href = url.toString();
+}
+function getCookie(name: string) {
+  const nameEQ = name + "=";
+  const ca = document.cookie.split(';');
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+}
+
+const api_key = getCookie("api-key");
+if (api_key !== null) {
+  setApiKey(api_key);
 }
 
 getRandomImage(); // Get initial image
