@@ -7,11 +7,45 @@ async function getRandomImage() {
 
   while (true) {
     try {
-      let assets = await getRandom({ count: 1 });
-      asset = assets[0];
-      if (asset.type === "IMAGE" && !asset.isArchived) {
+      // Fetch a batch of random images to filter
+      let assets = await getRandom({ count: 30 });
+
+      // Filter to only images that are not archived
+      assets = assets.filter(a => a.type === "IMAGE" && !a.isArchived);
+
+      if (assets.length === 0) {
+        console.warn("No valid images found in batch");
+        continue;
+      }
+
+      // Apply age-based probabilistic filtering to prefer recent photos
+      const now = Date.now();
+      const filteredAssets = assets.filter(a => {
+        // Get the photo's date
+        const photoDate = a.exifInfo?.dateTimeOriginal
+          ? new Date(a.exifInfo.dateTimeOriginal).getTime()
+          : new Date(a.fileCreatedAt).getTime();
+
+        // Calculate age in days
+        const ageInDays = (now - photoDate) / (1000 * 60 * 60 * 24);
+
+        // Discard probability increases with age
+        // For example: 1 day old = 1% discard, 100 days old = 50% discard, 365 days = ~78% discard
+        // Using formula: discardProbability = ageInDays / (ageInDays + 100)
+        const discardProbability = ageInDays / (ageInDays + 100);
+
+        // Keep the photo if random value is greater than discard probability
+        return Math.random() > discardProbability;
+      });
+
+      if (filteredAssets.length > 0) {
+        // Select a random photo from the filtered set
+        asset = filteredAssets[Math.floor(Math.random() * filteredAssets.length)];
         break;
       }
+
+      // If all photos were discarded, try again
+      console.log("All photos in batch were discarded, fetching new batch");
     } catch (error) {
       console.error("Error fetching random asset:", error);
     }
