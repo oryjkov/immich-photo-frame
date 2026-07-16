@@ -1,4 +1,4 @@
-import { setApiKey, getRandom, AssetResponseDto, viewAsset, AssetMediaSize, getAllAlbums, AlbumResponseDto } from '@immich/sdk';
+import { setApiKey, searchRandom, AssetResponseDto, AssetTypeEnum, AssetVisibility, viewAsset, AssetMediaSize, getAllAlbums, AlbumResponseDto } from '@immich/sdk';
 
 async function getRandomImage() {
   const imgElement = document.getElementById("random-photo") as HTMLImageElement;
@@ -7,11 +7,15 @@ async function getRandomImage() {
 
   while (true) {
     try {
-      // Fetch a batch of random images to filter
-      let assets = await getRandom({ count: 30 });
-
-      // Filter to only images that are not archived
-      assets = assets.filter(a => a.type === "IMAGE" && !a.isArchived);
+      // Fetch a batch of random, non-archived images to filter
+      const assets = await searchRandom({
+        randomSearchDto: {
+          size: 30,
+          type: AssetTypeEnum.Image,
+          visibility: AssetVisibility.Timeline,
+          withExif: true,
+        },
+      });
 
       if (assets.length === 0) {
         console.warn("No valid images found in batch");
